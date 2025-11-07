@@ -9,7 +9,19 @@ class CreatePoll extends Component
 {
 
     public $title;
-    public $options = ["first", "second"];
+    public $options = ["first"];
+
+    protected $rules = [
+        'title' => 'required|string|max:255',
+        'options' => 'required|array|min:1|max:10',
+        'options.*' => 'required|min:1|max:255',
+    ];
+
+    protected $messages = [
+        'options.*' => 'The Option Can\'t be empty'
+    ];
+
+
 
     public function render()
     {
@@ -17,7 +29,7 @@ class CreatePoll extends Component
     }
 
     public function addOption(){
-        $this->options[] = "sayang";
+        $this->options[] = "";
     }
 
     public function removeOption($index){
@@ -25,18 +37,29 @@ class CreatePoll extends Component
         $this->options = array_values($this->options);
     }
 
-    public function createPoll () {
-        $poll = Poll::create([
-            'title' => $this->title
-        ]);
+    public function updated($propertyName) {
+        $this->validateOnly($propertyName);
+    }
 
-        foreach($this->options as $optionName){
-            $poll->options()->create([
-                'name' => $optionName
-            ]);
-        }
+    public function createPoll () {
+        $this->validate();
+        // $poll =
+        Poll::create([
+            'title' => $this->title
+        ])->options()->createMany(
+            collect($this->options)
+            ->map(fn ($option)=> ['name' => $option])
+            ->all()
+        );
+
+        // foreach($this->options as $optionName){
+        //     $poll->options()->create([
+        //         'name' => $optionName
+        //     ]);
+        // }
 
         $this->reset('title', 'options');
+        $this->dispatch('pollCreated');
     }
 
     // public mount () {
